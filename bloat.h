@@ -164,11 +164,16 @@ void bloat_log(BLOAT_LOG type, char *fmt, ...)
         (array)->items = malloc((array)->capacity * sizeof((array->items))); \
     }
 
-#define da_realloc(array) \
+/* NOTE: This is only for specific reason to have customizable size due to string
+ builder requiring strlen instead of the size of the struct.
+*/
+#define da_realloc_cus(array, size) \
     if ((array)->count >= (array)->capacity) {                        \
         (array)->capacity *= 2;                                       \
-        (array)->items = realloc((array)->items, (((array)->capacity) * sizeof((array)))); \
+        (array)->items = realloc((array)->items, (((array)->capacity) * size)); \
     }
+
+#define da_realloc(array) da_realloc_cus((array), sizeof((array)))
 
 #define da_append(array, item)                         \
     do {                                               \
@@ -187,7 +192,7 @@ void sb_append(string_builder_t *sb, const char *item)
         da_alloc(sb);
     }
     size_t len = strlen(item);
-    da_realloc(sb);
+    da_realloc_cus(sb, len);
     strcpy(&sb->items[sb->count], item);
     sb->count += len;
 }
