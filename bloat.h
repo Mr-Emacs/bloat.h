@@ -23,7 +23,13 @@ typedef struct {
     void *data;
 } arena_t;
 
-// NOTE: Functions are bellow related to arena
+typedef struct {
+    char *items;
+    size_t count;
+    size_t capacity;
+} string_builder_t;
+
+// NOTE: Functions below are related to arena
 arena_t *arena_alloc(void);
 void arena_free(arena_t *);
 
@@ -34,8 +40,11 @@ void arena_pop(arena_t *, uint64_t);
 void arena_pop_to(arena_t *, uint64_t);
 void arena_clear(arena_t *);
 
-// NOTE: Functions are bellow related to logging
+// NOTE: Functions below are related to logging
 void bloat_log(BLOAT_LOG, char *, ...);
+
+// NOTE: Functions below are related to string builder;
+void sb_append(string_builder_t *, const char *);
 
 #ifdef BLOAT_IMPLEMNTATION
 /*
@@ -98,9 +107,7 @@ void *arena_push(arena_t *arena, uint64_t size)
 void *arena_push_zero(arena_t *arena, uint64_t size)
 {
     void *ptr = arena_push(arena, size);
-    if (ptr) {
-        memset(ptr, 0, size);
-    }
+    if (ptr) memset(ptr, 0, size);
     return ptr;
 }
 
@@ -147,6 +154,47 @@ void bloat_log(BLOAT_LOG type, char *fmt, ...)
     fprintf(stderr, "\n");
     va_end(args);
 }
+
+// NOTE: Dynamic array append macros
+// FIXME: Use the custom arena allocators for allocations
+#define da_alloc(array)                                                      \
+    if (!(array)->items) {                                                   \
+        (array)->count = 0 ;                                                 \
+        (array)->capacity = DEFAULT_CAPACITY;                                \
+        (array)->items = malloc((array)->capacity * sizeof((array->items))); \
+    }
+
+#define da_realloc(array) \
+    if ((array)->count >= (array)->capacity) {                        \
+        (array)->capacity *= 2;                                       \
+        (array)->items = realloc((array)->items, (((array)->capacity) * sizeof((array)))); \
+    }
+
+#define da_append(array, item)                         \
+    do {                                               \
+        da_realloc((array));                           \
+        (array)->items[(array)->count++] = item;       \
+    } while(0)
+
+#define da_free(array)                                 \
+    free((array)->items)                               \
+    free((array))                                      \
+
+// NOTE: String builder functions
+void sb_append(string_builder_t *sb, const char *item)
+{
+    if (sb->items == NULL) {
+        da_alloc(sb);
+    }
+    size_t len = strlen(item);
+    da_realloc(sb);
+    strcpy(&sb->items[sb->count], item);
+    sb->count += len;
+}
+
+// NOTE: Undefine useless things a user of the library should not see
+#undef da_alloc
+#undef da_realloc
 
 #endif
 #endif //BLOAT_H

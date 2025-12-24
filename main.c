@@ -12,14 +12,11 @@ int main(void)
 {
     arena_t *arena = arena_alloc();
 
-    struct Foo *foo = arena_push(arena, sizeof(struct Foo));
-    foo->name = "Hello";
-    foo->age = 17;
-    printf("%s\n", foo->name);
-    printf("%d\n", foo->age);
+    string_builder_t *sb = arena_push(arena, sizeof(string_builder_t));
 
-    bloat_log(BLOAT_INFO, "%d", foo->age);
+    sb_append(sb, "Ur mom");
+    printf("%s\n", sb->items);
 
-    arena_free(arena);
+    free(arena);
     return 0;
 }
