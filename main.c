@@ -18,6 +18,8 @@ int main(void)
     printf("%s\n", foo->name);
     printf("%d\n", foo->age);
 
+    bloat_log(BLOAT_INFO, "%d", foo->age);
+
     arena_free(arena);
     return 0;
 }

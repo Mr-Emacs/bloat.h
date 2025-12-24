@@ -6,8 +6,15 @@
 #include <stdlib.h>
 #include <assert.h>
 #include <string.h>
+#include <stdarg.h>
 
 #define DEFAULT_CAPACITY 1024
+
+typedef enum {
+    BLOAT_WARN,
+    BLOAT_ERROR,
+    BLOAT_INFO,
+} BLOAT_LOG;
 
 typedef struct {
     uint64_t pos;
@@ -16,8 +23,8 @@ typedef struct {
     void *data;
 } arena_t;
 
-// NOTE: Functions are bellow
-arena_t *arena_alloc();
+// NOTE: Functions are bellow related to arena
+arena_t *arena_alloc(void);
 void arena_free(arena_t *);
 
 void *arena_push(arena_t *, uint64_t);
@@ -26,6 +33,9 @@ void *arena_push_zero(arena_t *, uint64_t);
 void arena_pop(arena_t *, uint64_t);
 void arena_pop_to(arena_t *, uint64_t);
 void arena_clear(arena_t *);
+
+// NOTE: Functions are bellow related to logging
+void bloat_log(BLOAT_LOG, char *, ...);
 
 #ifdef BLOAT_IMPLEMNTATION
 /*
@@ -51,7 +61,7 @@ uint64_t align_mem(uint64_t pos, uint64_t size)
     return ((pos + (size - 1)) & ~(size - 1));
 }
 
-arena_t *arena_alloc()
+arena_t *arena_alloc(void)
 {
     arena_t *arena = malloc(sizeof(arena_t));
     arena->capacity = DEFAULT_CAPACITY;
@@ -110,6 +120,32 @@ void arena_pop_to(arena_t *arena, uint64_t pos)
 void arena_clear(arena_t *arena)
 {
     arena_pop_to(arena, ARENA_BASE_POS);
+}
+
+
+char *get_type(BLOAT_LOG type)
+{
+    if (type == BLOAT_WARN) return "BLOAT_WARN: ";
+    else if (type == BLOAT_ERROR) return "BLOAT_ERROR: ";
+    else if (type == BLOAT_INFO) return "BLOAT_INFO: ";
+    else {
+        printf("Unkown type refer to BLOAT_WARN, BLOAT_ERROR, BLOAT_INFO\n");
+        return NULL;
+    }
+}
+
+// NOTE: New line is not required
+void bloat_log(BLOAT_LOG type, char *fmt, ...)
+{
+    va_list args;
+    char *log_type = get_type(type);
+    if (!log_type) return;
+
+    fprintf(stderr, log_type);
+
+    vfprintf(stderr, fmt, args);
+    fprintf(stderr, "\n");
+    va_end(args);
 }
 
 #endif
