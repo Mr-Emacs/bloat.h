@@ -48,10 +48,10 @@ void sb_append(string_builder_t *, const char *);
 
 #ifdef BLOAT_IMPLEMNTATION
 /*
-This power macro is used to see if it is a module or not
+This macro is used to see if it is a module or not
 and it will return a boolean
 */
-// TODO: Better name
+// TODO: Think of a better name
 #define IS_ALLIGN(x, y) ((x & (y-1)) == 0)
 
 #define MIN(x, y) (((x) < (y)) ? (x) : (y))
