@@ -59,11 +59,6 @@ and it will return a boolean
 
 #define ARENA_BASE_POS (sizeof(arena_t))
 
-#define TODO(x) {      \
-    printf("%s\n", x); \
-    abort();          \
-}
-
 uint64_t align_mem(uint64_t pos, uint64_t size)
 {
     if (IS_ALLIGN(pos, size)) return pos;
@@ -78,6 +73,7 @@ arena_t *arena_alloc(void)
     arena->pos = 0;
     arena->data = malloc(sizeof(arena->size) * arena->capacity);
     if (!arena->data) {
+        bloat_log(BLOAT_ERROR, "%s", "Could not allocate more memory");
         free(arena);
         return NULL;
     }
@@ -97,6 +93,8 @@ void *arena_push(arena_t *arena, uint64_t size)
     uint64_t _new_pos = _pos + size;
 
     if (_new_pos > arena->capacity) {
+        bloat_log(BLOAT_ERROR, "The new position %lu is less than the capacirty %lu",
+                  _new_pos, arena->capacity);
         return NULL;
     }
 
@@ -119,16 +117,12 @@ void arena_pop(arena_t *arena, uint64_t size)
 
 void arena_pop_to(arena_t *arena, uint64_t pos)
 {
-    if ( pos >= arena->pos) return;
+    if (pos >= arena->pos) return;
     uint64_t _size = pos - arena->pos;
     arena_pop(arena, _size);
 }
 
-void arena_clear(arena_t *arena)
-{
-    arena_pop_to(arena, ARENA_BASE_POS);
-}
-
+#define arena_clear(arena) arena_pop_to(arena, ARENA_BASE_POS)
 
 char *get_type(BLOAT_LOG type)
 {
@@ -144,14 +138,17 @@ char *get_type(BLOAT_LOG type)
 // NOTE: New line is not required
 void bloat_log(BLOAT_LOG type, char *fmt, ...)
 {
-    va_list args;
     char *log_type = get_type(type);
     if (!log_type) return;
+
+    va_list args;
+    va_start(args, fmt);
 
     fprintf(stderr, log_type);
 
     vfprintf(stderr, fmt, args);
     fprintf(stderr, "\n");
+
     va_end(args);
 }
 
@@ -167,9 +164,9 @@ void bloat_log(BLOAT_LOG type, char *fmt, ...)
 /* NOTE: This is only for specific reason to have customizable size due to string
  builder requiring strlen instead of the size of the struct.
 */
-#define da_realloc_cus(array, size) \
-    if ((array)->count >= (array)->capacity) {                        \
-        (array)->capacity *= 2;                                       \
+#define da_realloc_cus(array, size)                                             \
+    if ((array)->count >= (array)->capacity) {                                  \
+        (array)->capacity *= 2;                                                 \
         (array)->items = realloc((array)->items, (((array)->capacity) * size)); \
     }
 
@@ -200,6 +197,7 @@ void sb_append(string_builder_t *sb, const char *item)
 // NOTE: Undefine useless things a user of the library should not see
 #undef da_alloc
 #undef da_realloc
+#undef da_realloc_cus
 
 #endif
 #endif //BLOAT_H

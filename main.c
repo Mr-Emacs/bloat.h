@@ -16,7 +16,10 @@ int main(void)
 
     struct Foo *foo = arena_push(arena, sizeof(struct Foo));
 
-    sb_append(sb, "Ur mom");
+    char *text = "Ur mom";
+    sb_append(sb, text);
+
+    bloat_log(BLOAT_INFO, "%s %s", "Created string builder and appended", text);
     printf("String builder: %s\n", sb->items);
 
     foo->name = "Hello world";
