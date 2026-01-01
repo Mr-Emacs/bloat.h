@@ -1,3 +1,43 @@
+/* Bloat.h
+ 
+  My helper library of reusable utilities in C.
+ 
+  Copyright (C) 2026 xsoder
+ 
+  This program is free software; you can redistribute it and/or modify
+  it under the terms of the GNU General Public License as published by
+  the Free Software Foundation; either version 2 of the License, or
+  (at your option) any later version.
+ 
+  See the LICENSE file for the full license text.
+*/
+
+/*
+Version note: 0.1.1:
+    - Introduced temporary arenas:
+        - temp_arena_alloc()
+        - temp_arena_free()
+        - temp_arena_push()
+        - temp_arena_pop()
+    - Introduced SCOPED_TEMP_ARENA macro:
+        - meant for temp arenas to live and die
+        - Also updated the docs for better usage. Still imperfect though.
+        
+Version note: 0.1.0:
+    - Introduced arenas:
+        - arena_alloc();
+        - arena_free();
+        - arena_push();
+        - arena_push_zero();
+        - arena_pop();
+        - arena_pop_to();
+        - arena_clear();
+
+    - Introduced string builder:
+        - string_builder_append();
+*/
+
+
 #ifndef BLOAT_H
 #define BLOAT_H
 
@@ -39,6 +79,16 @@ void *arena_push_zero(arena_t *, uint64_t);
 void arena_pop(arena_t *, uint64_t);
 void arena_pop_to(arena_t *, uint64_t);
 void arena_clear(arena_t *);
+
+typedef struct {
+    arena_t *arena;
+    uint64_t start_pos;
+} temp_arena_t;
+
+temp_arena_t *temp_arena_alloc(arena_t *parent_arena);
+void temp_arena_free(temp_arena_t *temp_arena);
+void *temp_arena_push(temp_arena_t *temp_arena, uint64_t size);
+void temp_arena_pop(temp_arena_t *temp_arena);
 
 // NOTE: Functions below are related to logging
 void bloat_log(BLOAT_LOG, char *, ...);
@@ -124,6 +174,52 @@ void arena_pop_to(arena_t *arena, uint64_t pos)
 
 #define arena_clear(arena) arena_pop_to(arena, ARENA_BASE_POS)
 
+temp_arena_t *temp_arena_alloc(arena_t *parent_arena)
+{
+    temp_arena_t *temp_arena = malloc(*temp_arena_t);
+    temp_arena->arena = parent_arena;
+    temp_arena->start_pos = parent_arena->pos;
+    return temp_arena;
+}
+
+void temp_arena_free(temp_arena_t *temp_arena)
+{
+    uint64_t end_pos = temp_arena->parent_arena->pos;
+    temp_arena->parent_arena->pos = temp_arena->start_pos;
+    free(temp_arena);
+}
+
+void *temp_arena_push(temp_arena_t *temp_arena, uint64_t size)
+{
+    return arena_push(temp_arena->parent_arena, size);
+}
+
+void temp_arena_pop(temp_arena_t *temp_arena)
+{
+    temp_arena->parent_arena->pos = temp_arena->start_pos;
+}
+
+/* NOTE:(xsoder)
+Please be ware to use this macro for scope based temporary arenas meaning
+you do not even need to do free call in your app preventing use after
+free issues.
+
+usage:
+    int foo(arena_t arena) {
+        SCOPED_TEMP_ARENA(arena, temp_arena_var);
+        void *mem = temp_arena_push(arena, UINT32_MAX);
+        if (mem) {
+            // do task
+        }
+    }
+See no need to call the free here this makes it a nicer helper in my opinion.
+*/
+
+#define SCOPED_TEMP_ARENA(parent_arena, temp_arena_var)                  \
+    for (temp_arena_t *temp_arena_var = temp_arena_alloc(parent_arena);  \
+         temp_arena_var != NULL;                                         \
+         temp_arena_free(temp_arena_var), temp_arena_var = NULL)
+
 char *get_type(BLOAT_LOG type)
 {
     if (type == BLOAT_WARN) return "BLOAT_WARN: ";
@@ -135,7 +231,6 @@ char *get_type(BLOAT_LOG type)
     }
 }
 
-// NOTE: New line is not required
 void bloat_log(BLOAT_LOG type, char *fmt, ...)
 {
     char *log_type = get_type(type);
@@ -152,8 +247,8 @@ void bloat_log(BLOAT_LOG type, char *fmt, ...)
     va_end(args);
 }
 
-// NOTE: Dynamic array append macros
-// FIXME: Use the custom arena allocators for allocations
+// NOTE:  Dynamic array append macros
+// FIXME: DEPRICIATED: Use the custom arena allocators for allocations.
 #define da_alloc(array)                                                      \
     if (!(array)->items) {                                                   \
         (array)->count = 0 ;                                                 \
@@ -161,8 +256,9 @@ void bloat_log(BLOAT_LOG type, char *fmt, ...)
         (array)->items = malloc((array)->capacity * sizeof((array->items))); \
     }
 
-/* NOTE: This is only for specific reason to have customizable size due to string
- builder requiring strlen instead of the size of the struct.
+/* NOTE:(xsoder)
+    This is only for specific reason to have customizable size due to string
+    builder requiring strlen instead of the size of the struct.
 */
 #define da_realloc_cus(array, size)                                             \
     if ((array)->count >= (array)->capacity) {                                  \
@@ -194,7 +290,6 @@ void sb_append(string_builder_t *sb, const char *item)
     sb->count += len;
 }
 
-// NOTE: Undefine useless things a user of the library should not see
 #undef da_alloc
 #undef da_realloc
 #undef da_realloc_cus
