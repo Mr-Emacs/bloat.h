@@ -1,14 +1,14 @@
 /* Bloat.h
- 
+
   My helper library of reusable utilities in C.
- 
+
   Copyright (C) 2026 xsoder
- 
+
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
   the Free Software Foundation; either version 2 of the License, or
   (at your option) any later version.
- 
+
   See the LICENSE file for the full license text.
 */
 
@@ -22,7 +22,7 @@ Version note: 0.1.1:
     - Introduced SCOPED_TEMP_ARENA macro:
         - meant for temp arenas to live and die
         - Also updated the docs for better usage. Still imperfect though.
-        
+
 Version note: 0.1.0:
     - Introduced arenas:
         - arena_alloc();
