@@ -131,14 +131,16 @@ typedef struct {
 } array;
 
 #define foreach(item, da)                                                      \
-  for (size_t _i = 0; _i < (da)->count; _i++)                                  \
-    for (void *item = (da)->items[_i], *_once = (void *)1; _once; _once = NULL)
+  for (size_t i = 0; i < (da)->count; ++i)                                     \
+    for (void *item = (da)->items[i]; item; item = 0)
 
 void da_append_s(array *da, void *item, size_t size);
 void da_append_arena(arena_t *arena, array *da, void *item, size_t size);
 void da_free(array *da);
 
 #define da_append(da, item) da_append_s((da), (item), sizeof(*(item)))
+#define cast(dest, src) (dest = *(typeof(dest) *)(src))
+#define arr_len(arr) (sizeof((arr)) / sizeof((arr)[0]))
 
 #ifdef BLOAT_IMPLEMENTATION
 
