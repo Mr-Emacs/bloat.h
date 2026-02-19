@@ -19,7 +19,7 @@ int main(void) {
   };
 
   for (size_t i = 0; i < 10; i++) {
-    da_append_arena(arena, &arr, &rect, sizeof(rect));
+    da_append_arena_sized(arena, &arr, &rect);
     rect.x += POS;
     rect.y += POS;
     rect.w += i;
@@ -27,8 +27,8 @@ int main(void) {
   }
 
   foreach (item, &arr) {
-    rectangle rec = *(rectangle *)item;
-    printf("Rectnagle x:%d, y:%d, w:%d, h:%d\n", rec.x, rec.y, rec.w, rec.h);
+    printf("Rectangle x:%d, y:%d, w:%d, h:%d\n", cast(rect, item).x,
+           cast(rect, item).y, cast(rect, item).w, cast(rect, item).h);
   }
 
   arena_free(arena);

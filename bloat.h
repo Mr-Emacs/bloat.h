@@ -15,6 +15,9 @@
 /*
 Patch note: 0.1.4:
     - Author @qy9 `foreach` macro improvement.
+    - Improved some the test cases.
+    - Introduce `da_append_arena_sized` so you do not pass the sizeof an item in
+      the function
 
 Version note: 0.1.3:
     - Addition of generic dynamic array structure `array`.
@@ -143,6 +146,10 @@ void da_append_arena(arena_t *arena, array *da, void *item, size_t size);
 void da_free(array *da);
 
 #define da_append(da, item) da_append_s((da), (item), sizeof(*(item)))
+
+#define da_append_arena_sized(arena, da, i)                                    \
+  da_append_arena(arena, (da), (i), sizeof(*i))
+
 #define cast(dest, src) (dest = *(typeof(dest) *)(src))
 #define arr_len(arr) (sizeof((arr)) / sizeof((arr)[0]))
 

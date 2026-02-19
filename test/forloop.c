@@ -7,12 +7,14 @@ int main(void) {
   array bar = {0};
 
   for (size_t i = 0; i < 10; i++) {
-    da_append_arena(arena, &bar, &i, sizeof(i));
+    da_append_arena_sized(arena, &bar, &i);
   }
 
   foreach (item, &bar) {
-    printf("%d\n", *(int *)item);
+    printf("%zu ", cast(i, item));
   }
+
+  printf("\n");
 
   arena_free(arena);
 }
