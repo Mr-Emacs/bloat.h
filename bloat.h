@@ -135,8 +135,8 @@ typedef struct {
 
 // NOTE: @qy9: Improved for loop
 #define foreach(item, da)                                                      \
-  for (size_t i = 0; i < da->count; ++i)                                       \
-    for (void *item = da->item[i]; item; item = 0)
+  for (size_t i = 0; i < (da)->count; ++i)                                     \
+    for (void *item = (da)->items[i]; item; item = 0)
 
 void da_append_s(array *da, void *item, size_t size);
 void da_append_arena(arena_t *arena, array *da, void *item, size_t size);
