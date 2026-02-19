@@ -354,16 +354,10 @@ void sb_append(string_builder_t *sb, const char *item) {
 }
 
 void da_append_s(array *da, void *item, size_t size) {
-  if (!da->items) {
-    da->count = 0;
-    da->capacity = 256;
-    da->items = malloc(sizeof(void *) * da->capacity);
-  }
+  if (!da->items)
+    _da_alloc(da);
 
-  if (da->count >= da->capacity) {
-    da->capacity *= 2;
-    da->items = realloc(da->items, sizeof(void *) * da->capacity);
-  }
+  _da_realloc_cus(da, sizeof(void *) * da->capacity);
 
   void *temp = malloc(size);
   memcpy(temp, item, size);
@@ -373,7 +367,7 @@ void da_append_s(array *da, void *item, size_t size) {
 void da_append_arena(arena_t *arena, array *da, void *item, size_t size) {
   if (!da->items) {
     da->count = 0;
-    da->capacity = 256;
+    da->capacity = DEFAULT_CAPACITY;
     da->items = arena_push(arena, sizeof(void *) * da->capacity);
   }
 
