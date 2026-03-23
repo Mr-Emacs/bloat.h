@@ -7,7 +7,7 @@ int main(void) {
   array bar = {0};
 
   for (size_t i = 0; i < 10; i++) {
-    da_append_arena_sized(arena, &bar, &i);
+    da_append_arena_sized(arena, &bar, i);
   }
 
   foreach (item, &bar) {

@@ -1,3 +1,4 @@
+#include <stdio.h>
 #define BLOAT_IMPLEMENTATION
 #include "../bloat.h"
 
@@ -9,6 +10,10 @@ typedef struct {
 
 int main(void) {
   arena_t *arena = arena_alloc();
+  if(!arena) {
+      printf("ABOBA URMOM");
+      return 1;
+  }
   array arr = {0};
 
   rectangle rect = {
@@ -19,7 +24,7 @@ int main(void) {
   };
 
   for (size_t i = 0; i < 10; i++) {
-    da_append_arena_sized(arena, &arr, &rect);
+    da_append_arena_sized(arena, &arr, rect);
     rect.x += POS;
     rect.y += POS;
     rect.w += i;
@@ -27,8 +32,8 @@ int main(void) {
   }
 
   foreach (item, &arr) {
-    printf("Rectangle x:%d, y:%d, w:%d, h:%d\n", cast(rect, item).x,
-           cast(rect, item).y, cast(rect, item).w, cast(rect, item).h);
+      rectangle rec = *(rectangle *)(item);
+      printf("X:%d Y:%d W:%d H:%d\n", rec.x, rec.y, rec.w, rec.h);
   }
 
   arena_free(arena);

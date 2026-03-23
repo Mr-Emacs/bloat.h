@@ -90,6 +90,22 @@ typedef struct arena_chunk_t {
   uint8_t data[];
 } arena_chunk_t;
 
+
+typedef struct {
+    void (*fn) (void *args);
+    void *args;
+} defer_func;
+
+
+typedef struct {
+    defer_func *stack;
+    int32_t top;
+    int32_t bottom;
+} defer_stack;
+
+
+static defer_stack stk = { NULL, 0, 0};
+
 typedef struct {
   arena_chunk_t *head;
   arena_chunk_t *current;
@@ -145,10 +161,14 @@ void da_append_s(array *da, void *item, size_t size);
 void da_append_arena(arena_t *arena, array *da, void *item, size_t size);
 void da_free(array *da);
 
-#define da_append(da, item) da_append_s((da), (item), sizeof(*(item)))
+#define da_append(da, ...) do { \
+    typeof(__VA_ARGS__) _items[] = {__VA_ARGS__}; \
+    for (size_t _i = 0; _i < sizeof(_items) / sizeof(_items[0]); _i++) \
+        da_append_s((da), &_items[_i], sizeof(_items[_i])); \
+} while (0)
 
 #define da_append_arena_sized(arena, da, i)                                    \
-  da_append_arena(arena, (da), (i), sizeof(*i))
+  da_append_arena(arena, (da), &(i), sizeof(i))
 
 #define cast(dest, src) (dest = *(typeof(dest) *)(src))
 #define arr_len(arr) (sizeof((arr)) / sizeof((arr)[0]))
@@ -409,6 +429,46 @@ void da_free(array *da) {
   da->count = 0;
   da->capacity = 0;
 }
+
+#define defer(fn, args) \
+do { \
+    if (stk.top == stk.bottom) { \
+        int32_t cap = stk.bottom ? stk.bottom * 2 : 256;\
+        stk.stack = realloc(stk.stack, sizeof(*stk.stack) * cap);\
+        stk.bottom = cap;\
+    } \
+    stk.stack[stk.top++] = (defer_func) { fn, args }; \
+} while(0)
+
+#define defer_run() \
+do {\
+    while(stk.top > 0) { \
+        --stk.top;\
+        stk.stack[stk.top].fn(stk.stack[stk.top].args); \
+    } \
+    printf("Doing defer\n"); \
+    free(stk.stack); \
+    stk.stack = NULL; \
+} while(0)
+
+typedef struct {
+    void (*fn)(void *);
+    void **ptr;
+} defer_deref_args;
+
+void _defer_deref(void *args) {
+    defer_deref_args *a = (defer_deref_args *)args;
+    a->fn(*a->ptr);
+    free(a);
+}
+
+#define defer_ptr(_fn, _ptr) \
+do { \
+    defer_deref_args *_a = malloc(sizeof(defer_deref_args)); \
+    _a->fn = (void(*)(void *))(_fn); \
+    _a->ptr = (void **)&(_ptr); \
+    defer(_defer_deref, _a); \
+} while(0)
 
 #undef _da_alloc
 #undef _da_realloc_cus
