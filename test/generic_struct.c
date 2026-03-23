@@ -9,7 +9,8 @@ typedef struct {
   int x, y, w, h;
 } rectangle;
 
-int main(void) {
+int main(void)
+{
   arena_t *arena = arena_alloc();
   if(!arena) {
       printf("ABOBA URMOM");

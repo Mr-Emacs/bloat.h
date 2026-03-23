@@ -14,6 +14,10 @@
 
 /*
 Patch note: 0.1.5:
+    - @Mr-Emacs `string_view_t` mechanmism in C.
+    - String view in C added.
+
+Patch note: 0.1.5:
     - @Mr-Emacs `defer` mechanmism in C.
     - Introduced defer example and use cases
 
@@ -119,6 +123,11 @@ typedef struct {
   size_t capacity;
 } string_builder_t;
 
+typedef struct {
+  uint8_t *data;
+  size_t size;
+} string_view_t;
+
 // NOTE: Functions below are related to arena
 arena_t *arena_alloc(void);
 void arena_free(arena_t *);
@@ -145,7 +154,17 @@ void temp_arena_pop(temp_arena_t *temp_arena);
 void bloat_log(BLOAT_LOG, char *, ...);
 
 // NOTE: Functions below are related to string builder;
-void sb_append(string_builder_t *, const char *);
+void sb_append(string_builder_t *sb, const char *name);
+
+string_view_t cstr_to_str(const char *name);
+void sv_chop_left(string_view_t *sv);
+void sv_chop_right(string_view_t *sv);
+
+size_t sv_trim_by_del(string_view_t *sv, char n);
+void sv_trim_fn(string_view_t *sv, int(*fn)(int));
+
+#define SV_fmt "%.*s"
+#define SV_Args(str) (int)str.size, (char *)str.data
 
 // Array Related Functions
 typedef struct {
@@ -488,6 +507,57 @@ do { \
     free(stk.stack); \
     stk.stack = NULL; \
 } while(0)
+
+
+string_view_t cstr_to_str(const char *name)
+{
+  return (string_view_t) { .data = (uint8_t *)name, .size = strlen(name) };
+}
+
+string_view_t cstr_to_str_s(const char *name, size_t size)
+{
+  return (string_view_t) { .data = (uint8_t *)name, .size = size };
+}
+
+void sv_chop_left(string_view_t *sv)
+{
+  if (sv->size > 0) {
+    sv->data += 1;
+    sv->size -= 1;
+  }
+}
+
+void sv_chop_right(string_view_t *sv)
+{
+  if (sv->size > 0) {
+    sv->size -= 1;
+  }
+}
+
+void sv_trim_fn(string_view_t *sv, int(*fn)(int))
+{
+  while(sv->size > 0 && fn((unsigned char)sv->data[0])) {
+    sv_chop_left(sv);
+  }
+
+  while(sv->size > 0 && fn((unsigned char)sv->data[sv->size-1])) {
+    sv_chop_right(sv);
+  }
+}
+
+size_t sv_trim_by_del(string_view_t *sv, char n)
+{
+  while(sv->size > 0 && sv->data[0] == n) {
+    sv_chop_left(sv);
+  }
+
+  while(sv->size > 0 && sv->data[sv->size-1] == n) {
+    sv_chop_right(sv);
+  }
+  size_t i = 0;
+  while (i < sv->size && sv->data[i] != n) i++;
+  return i;
+}
 
 #undef _da_alloc
 #undef _da_realloc_cus

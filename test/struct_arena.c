@@ -7,7 +7,8 @@ struct Foo {
   int age;
 };
 
-int main(void) {
+int main(void)
+{
   arena_t *arena = arena_alloc();
 
   struct Foo *foo = arena_push(arena, sizeof(struct Foo));

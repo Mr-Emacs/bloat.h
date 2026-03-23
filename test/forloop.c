@@ -2,7 +2,8 @@
 #define BLOAT_IMPLEMENTATION
 #include "../bloat.h"
 
-int main(void) {
+int main(void)
+{
   arena_t *arena = arena_alloc();
 
   array bar = {0};
