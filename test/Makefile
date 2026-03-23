@@ -1,14 +1,17 @@
-CFLAGS = -Wall -Wextra -Wpedantic -Wno-deprecated-declarations -std=c23 -Wno-unsequenced
+ifeq ($(OS),Windows_NT)
+	CC := clang.exe
+else
+	CC := clang
+endif
 
-all: forloop.exe generic_struct.exe struct_arena.exe string_builder.exe
+CFLAGS = -Wall -Wextra -Wpedantic -std=c23 -Wno-unsequenced
+SRCS   = $(wildcard *.c)
+EXES   = $(SRCS:.c=.exe)
 
-forloop.exe: forloop.c
-	clang.exe $(CFLAGS) -o forloop.exe forloop.c
-generic_struct.exe: generic_struct.c
-	clang.exe $(CFLAGS) -o generic_struct.exe generic_struct.c
+all: $(EXES)
 
-struct_arena.exe: struct_arena.c
-	clang.exe $(CFLAGS) -o struct_arena.exe struct_arena.c
+%.exe: %.c
+	$(CC) $(CFLAGS) -o $@ $<
 
-string_builder.exe: string_builder.c
-	clang.exe $(CFLAGS) -o string_builder.exe string_builder.c
+clean:
+	del *.exe

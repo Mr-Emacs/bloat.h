@@ -1,3 +1,4 @@
+#define _CRT_SECURE_NO_WARNINGS
 #include <stdio.h>
 #define BLOAT_IMPLEMENTATION
 #include "../bloat.h"

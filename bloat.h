@@ -13,6 +13,10 @@
 */
 
 /*
+Patch note: 0.1.5:
+    - @Mr-Emacs `defer` mechanmism in C.
+    - Introduced defer example and use cases
+
 Patch note: 0.1.4:
     - Author @qy9 `foreach` macro improvement.
     - Improved some the test cases.
@@ -90,19 +94,17 @@ typedef struct arena_chunk_t {
   uint8_t data[];
 } arena_chunk_t;
 
-
 typedef struct {
-    void (*fn) (void *args);
-    void *args;
+    void *fn;
+    void *arg;
+    bool deref;
 } defer_func;
-
 
 typedef struct {
     defer_func *stack;
     int32_t top;
     int32_t bottom;
 } defer_stack;
-
 
 static defer_stack stk = { NULL, 0, 0};
 
@@ -430,44 +432,59 @@ void da_free(array *da) {
   da->capacity = 0;
 }
 
-#define defer(fn, args) \
+static inline void _defer_call(void *fn, void *arg, bool deref) {
+    if (deref) arg = *(void **)arg;
+#if defined(_WIN32) || defined(_WIN64)
+    __asm__ volatile (
+        "subq $32, %%rsp\n\t"
+        "movq %1, %%rcx\n\t"
+        "callq *%0\n\t"
+        "addq $32, %%rsp\n\t"
+        :
+        : "r"(fn), "r"(arg)
+        : "rcx", "rax", "rdx", "r8", "r9", "r10", "r11", "memory"
+    );
+#else
+    __asm__ volatile (
+        "movq %1, %%rdi\n\t"
+        "callq *%0\n\t"
+        :
+        : "r"(fn), "r"(arg)
+        : "rdi", "rax", "rsi", "rdx", "rcx", "r8", "r9", "r10", "r11", "memory"
+    );
+#endif
+}
+
+#define defer(_fn, _args) \
 do { \
     if (stk.top == stk.bottom) { \
-        int32_t cap = stk.bottom ? stk.bottom * 2 : 256;\
-        stk.stack = realloc(stk.stack, sizeof(*stk.stack) * cap);\
-        stk.bottom = cap;\
+        int32_t cap = stk.bottom ? stk.bottom * 2 : 256; \
+        stk.stack = realloc(stk.stack, sizeof(*stk.stack) * cap); \
+        stk.bottom = cap; \
     } \
-    stk.stack[stk.top++] = (defer_func) { fn, args }; \
+    stk.stack[stk.top++] = (defer_func){ (void *)(_fn), (void *)(_args), false }; \
 } while(0)
-
-#define defer_run() \
-do {\
-    while(stk.top > 0) { \
-        --stk.top;\
-        stk.stack[stk.top].fn(stk.stack[stk.top].args); \
-    } \
-    printf("Doing defer\n"); \
-    free(stk.stack); \
-    stk.stack = NULL; \
-} while(0)
-
-typedef struct {
-    void (*fn)(void *);
-    void **ptr;
-} defer_deref_args;
-
-void _defer_deref(void *args) {
-    defer_deref_args *a = (defer_deref_args *)args;
-    a->fn(*a->ptr);
-    free(a);
-}
 
 #define defer_ptr(_fn, _ptr) \
 do { \
-    defer_deref_args *_a = malloc(sizeof(defer_deref_args)); \
-    _a->fn = (void(*)(void *))(_fn); \
-    _a->ptr = (void **)&(_ptr); \
-    defer(_defer_deref, _a); \
+    if (stk.top == stk.bottom) { \
+        int32_t cap = stk.bottom ? stk.bottom * 2 : 256; \
+        stk.stack = realloc(stk.stack, sizeof(*stk.stack) * cap); \
+        stk.bottom = cap; \
+    } \
+    stk.stack[stk.top++] = (defer_func){ (void *)(_fn), (void *)&(_ptr), true }; \
+} while(0)
+
+#define defer_run() \
+do { \
+    while (stk.top > 0) { \
+        --stk.top; \
+        _defer_call(stk.stack[stk.top].fn, \
+                    stk.stack[stk.top].arg, \
+                    stk.stack[stk.top].deref); \
+    } \
+    free(stk.stack); \
+    stk.stack = NULL; \
 } while(0)
 
 #undef _da_alloc
