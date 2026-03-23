@@ -163,17 +163,19 @@ void da_append_s(array *da, void *item, size_t size);
 void da_append_arena(arena_t *arena, array *da, void *item, size_t size);
 void da_free(array *da);
 
-#define da_append(da, ...) do { \
-    typeof(__VA_ARGS__) _items[] = {__VA_ARGS__}; \
-    for (size_t _i = 0; _i < sizeof(_items) / sizeof(_items[0]); _i++) \
-        da_append_s((da), &_items[_i], sizeof(_items[_i])); \
-} while (0)
+#define arr_len(arr) (sizeof((arr)) / sizeof((arr)[0]))
+#define da_append(da, ...) \
+    do { \
+        typeof(__VA_ARGS__) items[] = { __VA_ARGS__ }; \
+        for(size_t i = 0; i < arr_len(items); ++i) { \
+            da_append_s((da), &(items)[i], sizeof(items)) ;\
+        }\
+    } while(0)
 
 #define da_append_arena_sized(arena, da, i)                                    \
   da_append_arena(arena, (da), &(i), sizeof(i))
 
 #define cast(dest, src) (dest = *(typeof(dest) *)(src))
-#define arr_len(arr) (sizeof((arr)) / sizeof((arr)[0]))
 
 #ifdef BLOAT_IMPLEMENTATION
 
